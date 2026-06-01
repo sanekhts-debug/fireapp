@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Огонёк</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            font-family: -apple-system, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fire-emoji { font-size: 120px; }
+        .streak-count { font-size: 72px; color: white; }
+        .btn { padding: 16px 50px; font-size: 18px; border-radius: 50px; background: #ff4500; color: white; }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <div class="fire-emoji">🔥</div>
+        <div class="streak-count" id="count">0</div>
+        <button class="btn" onclick="press()">Поддержать огонь</button>
+    </div>
+    <script>
+        let count = localStorage.getItem('count') || 0;
+        document.getElementById('count').innerText = count;
+        function press() {
+            count++;
+            localStorage.setItem('count', count);
+            document.getElementById('count').innerText = count;
+        }
+    </script>
+</body>
+</html>
