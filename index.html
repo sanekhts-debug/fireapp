@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🔥 Огонёк</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            font-family: -apple-system, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            color: #fff;
+        }
+        .tabs {
+            display: flex;
+            padding: 12px 16px;
+            gap: 8px;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: #1a1a1a;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .tab.active {
+            border-color: #ff6347;
+            color: #fff;
+            background: #2a1a1a;
+        }
+        .page {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .page.active { display: flex; }
+
+        /* Огонёк */
+        .fire-emoji {
+            font-size: 100px;
+            display: block;
+            animation: pulse 1.5s ease-in-out infinite;
+            filter: drop-shadow(0 0 30px #ff4500) drop-shadow(0 0 60px #ff6347);
+        }
+        .fire-emoji.dead {
+            animation: none;
+            filter: grayscale(1) brightness(0.4);
+            transform: scale(0.8);
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .streak-count {
+            font-size: 72px;
+            font-weight: 900;
+            text-shadow: 0 0 40px #ff4500, 0 0 80px #ff6347;
+            margin: 8px 0;
+        }
+        .streak-label {
+            font-size: 16px;
+            color: #aaa;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .info-text { color: #666; font-size: 13px; margin-top: 8px; text-align: center; }
+
+        /* Кубики */
+        .dice-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            margin: 20px 0;
+            min-height: 100px;
+            align-items: center;
+        }
+        .dice {
+            font-size: 70px;
+            animation: none;
+            line-height: 1;
+        }
+        .dice.rolling {
+            animation: diceRoll 0.8s ease-out;
+        }
+        @keyframes diceRoll {
+            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+            30% { transform: rotate(180deg) scale(1.3); opacity: 1; }
+            60% { transform: rotate(360deg) scale(0.9); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .dice-selector {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .dice-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background: #1a1a1a;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .dice-btn.active {
+            border-color: #ff6347;
+            background: #2a1a1a;
+        }
+
+        /* Казино */
+        .slot-container {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .slot {
+            font-size: 80px;
+            animation: none;
+            line-height: 1;
+        }
+        .slot.spinning {
+            animation: slotSpin 0.3s linear infinite;
+        }
+        @keyframes slotSpin {
+            0% { transform: translateY(-20px); opacity: 0.5; }
+            50% { transform: translateY(20px); opacity: 1; }
+            100% { transform: translateY(-20px); opacity: 0.5; }
+        }
+        .slot-result {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 12px;
+            min-height: 28px;
+        }
+        .slot-win {
+            color: #ffb800;
+            text-shadow: 0 0 20px #ffb800;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        /* Кнопки */
+        .bottom-panel {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .btn-fire {
+            background: linear-gradient(135deg, #ff4500, #ff6347);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(255,69,0,0.4);
+        }
+        .btn-disabled { background: #333; color: #666; cursor: not-allowed; }
+        .btn-reset {
+            background: none;
+            border: 1px solid #ff5252;
+            color: #ff5252;
+            font-size: 14px;
+            padding: 12px;
+        }
+        .btn-roll {
+            background: linear-gradient(135deg, #4a9eff, #6ab4ff);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(74,158,255,0.4);
+        }
+        .btn-spin {
+            background: linear-gradient(135deg, #b44aff, #c97aff);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(180,74,255,0.4);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #222;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            z-index: 10;
+            transition: transform 0.4s;
+            text-align: center;
+            max-width: 90%;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.fire-toast { background: #ff4500; color: #fff; font-weight: 600; }
+        .particles {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 0;
+        }
+        .particle {
+            position: absolute; width: 4px; height: 4px;
+            background: #ff4500; border-radius: 50%;
+            animation: floatUp 2s ease-out forwards; opacity: 0;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 0.8; }
+            100% { transform: translateY(-300px) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="particles" id="particles"></div>
+
+<!-- Вкладки -->
+<div class="tabs">
+    <button class="tab active" onclick="switchTab('fire')">🔥</button>
+    <button class="tab" onclick="switchTab('dice')">🎲</button>
+    <button class="tab" onclick="switchTab('casino')">🎰</button>
+</div>
+
+<!-- Огонёк -->
+<div class="page active" id="page-fire">
+    <span class="fire-emoji" id="fireEmoji">🔥</span>
+    <div class="streak-label">дней подряд</div>
+    <div class="streak-count" id="streakCount">0</div>
+    <p class="info-text" id="infoText">Нажми, чтобы зажечь огонь!</p>
+</div>
+
+<!-- Кубики -->
+<div class="page" id="page-dice">
+    <div class="dice-container" id="diceContainer">
+        <span class="dice">🎲</span>
+    </div>
+    <div class="dice-selector" id="diceSelector">
+        <button class="dice-btn active" onclick="setDiceCount(1)">1</button>
+        <button class="dice-btn" onclick="setDiceCount(2)">2</button>
+        <button class="dice-btn" onclick="setDiceCount(3)">3</button>
+        <button class="dice-btn" onclick="setDiceCount(4)">4</button>
+        <button class="dice-btn" onclick="setDiceCount(5)">5</button>
+    </div>
+</div>
+
+<!-- Казино -->
+<div class="page" id="page-casino">
+    <div class="slot-container" id="slotContainer">
+        <span class="slot">🎰</span>
+        <span class="slot">🎰</span>
+        <span class="slot">🎰</span>
+    </div>
+    <div class="slot-result" id="slotResult"></div>
+</div>
+
+<!-- Кнопки -->
+<div class="bottom-panel" id="bottomFire">
+    <button class="btn btn-fire" id="mainBtn" onclick="handlePress()">🔥 Зажечь огонь</button>
+    <button class="btn btn-reset" onclick="resetStreak()">🔄 Сбросить счётчик</button>
+</div>
+<div class="bottom-panel" id="bottomDice" style="display:none;">
+    <button class="btn btn-roll" onclick="rollDice()">🎲 Бросить кубики</button>
+</div>
+<div class="bottom-panel" id="bottomCasino" style="display:none;">
+    <button class="btn btn-spin" onclick="spinCasino()">🎰 Крутить</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready(); tg.expand();
+
+    // ===== ОГОНЁК =====
+    const STORAGE_KEY = 'fire_simple_streak';
+    let streakData = { count: 0, lastPressDate: null };
+
+    function getToday() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function getYesterday() {
+        const d = new Date(); d.setDate(d.getDate()-1);
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function loadFire() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw) try { streakData = JSON.parse(raw); } catch(e) { streakData = { count:0, lastPressDate:null }; }
+        checkStreak(); saveFire();
+    }
+    function saveFire() { localStorage.setItem(STORAGE_KEY, JSON.stringify(streakData)); }
+    function checkStreak() {
+        if(!streakData.lastPressDate) return;
+        const t = getToday(); if(streakData.lastPressDate === t) return;
+        const y = getYesterday(); if(streakData.lastPressDate === y) return;
+        streakData.count = 0; streakData.lastPressDate = null;
+    }
+    function canPressToday() { return streakData.lastPressDate !== getToday(); }
+    function handlePress() {
+        if(!canPressToday()) { showToast('Уже нажал сегодня! 🔥', false); shakeFire(); return; }
+        streakData.count++; streakData.lastPressDate = getToday(); saveFire();
+        spawnParticles(); showToast('+1 день! 🔥', true); updateFireUI();
+    }
+    function resetStreak() {
+        if(!confirm(`Сбросить счётчик (${streakData.count} дн.)?`)) return;
+        streakData.count = 0; streakData.lastPressDate = null; saveFire(); updateFireUI();
+        showToast('Счётчик сброшен 🔄', false);
+    }
+    function updateFireUI() {
+        const fe = document.getElementById('fireEmoji');
+        const ce = document.getElementById('streakCount');
+        const btn = document.getElementById('mainBtn');
+        const it = document.getElementById('infoText');
+        ce.textContent = streakData.count;
+        if(streakData.count===0){ fe.className='fire-emoji dead'; fe.textContent='🔥'; it.textContent='Нажми, чтобы зажечь огонь!'; }
+        else if(streakData.count>=100){ fe.className='fire-emoji'; fe.textContent='💥'; it.textContent='ЭПИЧЕСКИЙ ОГОНЬ!'; }
+        else if(streakData.count>=30){ fe.className='fire-emoji'; fe.textContent='💥'; it.textContent='Легендарный огонь!'; }
+        else if(streakData.count>=7){ fe.className='fire-emoji'; fe.textContent='🔥'; it.textContent='Огонь всё сильнее!'; }
+        else { fe.className='fire-emoji'; fe.textContent='🔥'; it.textContent='Продолжай в том же духе!'; }
+        if(canPressToday()){ btn.className='btn btn-fire'; btn.textContent=streakData.count===0?'🔥 Зажечь огонь':'🔥 Поддержать огонь'; btn.disabled=false; }
+        else { btn.className='btn btn-disabled'; btn.textContent='✅ Сегодня уже есть'; btn.disabled=true; it.textContent='Возвращайся завтра!'; }
+    }
+    function shakeFire() {
+        const el = document.getElementById('fireEmoji');
+        el.style.animation='none'; el.offsetHeight;
+        el.style.animation='pulse 0.3s ease-in-out 3';
+        setTimeout(()=>{ el.style.animation='pulse 1.5s ease-in-out infinite'; },900);
+    }
+
+    // ===== КУБИКИ =====
+    const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+    let diceCount = 1;
+    function setDiceCount(n) {
+        diceCount = n;
+        document.querySelectorAll('.dice-btn').forEach((b,i)=> b.classList.toggle('active', i+1===n));
+        renderDice();
+    }
+    function renderDice() {
+        const c = document.getElementById('diceContainer');
+        c.innerHTML = '';
+        for(let i=0;i<diceCount;i++) {
+            const span = document.createElement('span');
+            span.className='dice'; span.textContent='🎲'; c.appendChild(span);
+        }
+    }
+    function rollDice() {
+        const diceEls = document.querySelectorAll('#diceContainer .dice');
+        diceEls.forEach(d=>{ d.classList.add('rolling'); });
+        setTimeout(()=>{
+            diceEls.forEach(d=>{
+                const val = Math.floor(Math.random()*6);
+                d.textContent = DICE_FACES[val];
+                d.classList.remove('rolling');
+            });
+        }, 800);
+    }
+
+    // ===== КАЗИНО =====
+    const SLOT_ICONS = ['7️⃣','🍒','💎','🍋','🍇','🔔','⭐','🍀','🍊','💰'];
+    function spinCasino() {
+        const slots = document.querySelectorAll('#slotContainer .slot');
+        const resultEl = document.getElementById('slotResult');
+        resultEl.textContent = ''; resultEl.className = 'slot-result';
+        slots.forEach(s=> s.classList.add('spinning'));
+        setTimeout(()=>{
+            const results = [];
+            slots.forEach(s=>{
+                const r = SLOT_ICONS[Math.floor(Math.random()*SLOT_ICONS.length)];
+                s.textContent = r; results.push(r);
+                s.classList.remove('spinning');
+            });
+            if(results[0]===results[1] && results[1]===results[2]){
+                resultEl.textContent = '🎉 ДЖЕКПОТ! 🎉'; resultEl.className = 'slot-result slot-win';
+                spawnParticles();
+            } else if(results[0]===results[1] || results[1]===results[2] || results[0]===results[2]){
+                resultEl.textContent = 'Почти! Два совпало! ✨';
+            } else {
+                resultEl.textContent = 'Попробуй ещё! 🍀';
+            }
+        }, 1000);
+    }
+
+    // ===== ВКЛАДКИ =====
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t=> t.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p=> p.classList.remove('active'));
+        document.getElementById('bottomFire').style.display = 'none';
+        document.getElementById('bottomDice').style.display = 'none';
+        document.getElementById('bottomCasino').style.display = 'none';
+
+        if(tab==='fire'){
+            document.querySelector('.tab:nth-child(1)').classList.add('active');
+            document.getElementById('page-fire').classList.add('active');
+            document.getElementById('bottomFire').style.display = '';
+        } else if(tab==='dice'){
+            document.querySelector('.tab:nth-child(2)').classList.add('active');
+            document.getElementById('page-dice').classList.add('active');
+            document.getElementById('bottomDice').style.display = '';
+        } else if(tab==='casino'){
+            document.querySelector('.tab:nth-child(3)').classList.add('active');
+            document.getElementById('page-casino').classList.add('active');
+            document.getElementById('bottomCasino').style.display = '';
+        }
+    }
+
+    // ===== ОБЩЕЕ =====
+    function spawnParticles() {
+        const container = document.getElementById('particles');
+        for(let i=0;i<30;i++){
+            const p = document.createElement('div'); p.className='particle';
+            p.style.left=(20+Math.random()*60)+'%'; p.style.bottom='20%';
+            p.style.animationDelay=Math.random()*0.5+'s';
+            p.style.animationDuration=(1.5+Math.random()*3)+'s';
+            p.style.width=(2+Math.random()*6)+'px'; p.style.height=p.style.width;
+            p.style.background=Math.random()>0.5?'#ff4500':'#ffa500';
+            container.appendChild(p);
+            setTimeout(()=>p.remove(),3000);
+        }
+    }
+    function showToast(m,f){
+        const t=document.getElementById('toast'); t.textContent=m;
+        t.className='toast'+(f?' fire-toast':''); t.classList.add('show');
+        clearTimeout(t._timeout);
+        t._timeout=setTimeout(()=>t.classList.remove('show'),2000);
+    }
+
+    // Запуск
+    loadFire(); updateFireUI(); renderDice();
+    function scheduleMidnight(){
+        const n=new Date(); const m=new Date(n); m.setHours(24,0,0,0);
+        setTimeout(()=>{ checkStreak(); saveFire(); updateFireUI(); scheduleMidnight(); }, m-n+1000);
+    }
+    scheduleMidnight();
+</script>
+</body>
+</html>
